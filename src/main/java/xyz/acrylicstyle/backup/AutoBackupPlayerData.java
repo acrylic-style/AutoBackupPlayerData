@@ -38,6 +38,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                 if (folder.listFiles() != null) {
                     CollectionList<File> files = ICollectionList.asList(folder.listFiles());
                     files.sort(Comparator.comparingLong(File::lastModified));
+                    files.sort(Comparator.reverseOrder());
                     files.foreach((file, i) -> {
                         if (i > keepFiles) {
                             Log.info("Deleting " + file.getAbsolutePath());
