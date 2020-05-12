@@ -49,9 +49,10 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                         }
                     });
                 }
+                long time = new Date().getTime();
                 uuids.forEach(uuid -> {
                     File src = new File("./world/playerdata/" + uuid.toString() + ".dat");
-                    File dest = new File("./backupplayerdata/" + new Date().getTime() + "/" + uuid.toString() + ".dat");
+                    File dest = new File("./backupplayerdata/" + time + "/" + uuid.toString() + ".dat");
                     dest.mkdirs();
                     dest.delete();
                     try {
