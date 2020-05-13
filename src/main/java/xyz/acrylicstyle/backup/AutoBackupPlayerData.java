@@ -44,9 +44,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                             Log.info("Deleting " + file.getAbsolutePath());
                             try {
                                 FileUtils.deleteDirectory(file);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                            } catch (IOException ignore) {}
                         }
                     });
                 }
@@ -58,9 +56,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                     dest.delete();
                     try {
                         FileUtils.copyFile(src, dest);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    } catch (IOException ignore) {}
                 });
                 uuids.clear();
                 Log.info("プレイヤーデータのバックアップが完了しました。");
