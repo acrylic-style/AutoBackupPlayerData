@@ -19,7 +19,7 @@ import java.util.*;
 
 public class AutoBackupPlayerData extends JavaPlugin implements Listener {
     public static ConfigProvider config = null;
-    public static Set<UUID> uuids = new HashSet<>();
+    public static List<UUID> uuids = new ArrayList<>();
     public static int period = 10; // minutes
     public static int keepFiles = 100;
 
@@ -74,11 +74,11 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
-        uuids.add(e.getPlayer().getUniqueId());
+        if (!uuids.contains(e.getPlayer().getUniqueId())) uuids.add(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
-        uuids.add(e.getPlayer().getUniqueId());
+        if (!uuids.contains(e.getPlayer().getUniqueId())) uuids.add(e.getPlayer().getUniqueId());
     }
 }
