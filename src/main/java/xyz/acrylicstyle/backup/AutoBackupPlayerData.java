@@ -2,6 +2,7 @@ package xyz.acrylicstyle.backup;
 
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -16,6 +17,7 @@ import xyz.acrylicstyle.tomeito_api.utils.Log;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class AutoBackupPlayerData extends JavaPlugin implements Listener {
     public static ConfigProvider config = null;
@@ -30,7 +32,6 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         keepFiles = config.getInt("keepFiles", 100);
         Bukkit.getPluginManager().registerEvents(this, this);
         new BukkitRunnable() {
-            @SuppressWarnings("ResultOfMethodCallIgnored")
             @Override
             public void run() {
                 Log.info("プレイヤーデータをバックアップしています...");
@@ -49,15 +50,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                     });
                 }
                 long time = new Date().getTime();
-                uuids.forEach(uuid -> {
-                    File src = new File("./world/playerdata/" + uuid.toString() + ".dat");
-                    File dest = new File("./backupplayerdata/" + time + "/" + uuid.toString() + ".dat");
-                    dest.mkdirs();
-                    dest.delete();
-                    try {
-                        FileUtils.copyFile(src, dest);
-                    } catch (IOException ignore) {}
-                });
+                uuids.forEach(saveConsumer(time));
                 uuids.clear();
                 Log.info("プレイヤーデータのバックアップが完了しました。");
             }
@@ -65,10 +58,24 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         Bukkit.getOnlinePlayers().forEach(p -> uuids.add(p.getUniqueId()));
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private Consumer<UUID> saveConsumer(long time) {
+        return uuid -> {
+            File src = new File("./world/playerdata/" + uuid.toString() + ".dat");
+            File dest = new File("./backupplayerdata/" + time + "/" + uuid.toString() + ".dat");
+            dest.mkdirs();
+            dest.delete();
+            try {
+                FileUtils.copyFile(src, dest);
+            } catch (IOException ignore) {}
+        };
+    }
+
     @Override
     public void onDisable() {
         Log.info("プレイヤーデータをバックアップしています...");
-
+        long time = new Date().getTime();
+        ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
         Log.info("バックアップが完了しました。");
     }
 
