@@ -3,10 +3,7 @@ package xyz.acrylicstyle.backup;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import util.CollectionList;
@@ -16,12 +13,14 @@ import xyz.acrylicstyle.tomeito_api.utils.Log;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class AutoBackupPlayerData extends JavaPlugin implements Listener {
     public static ConfigProvider config = null;
-    public static List<UUID> uuids = new ArrayList<>();
     public static int period = 10; // minutes
     public static int keepFiles = 100;
 
@@ -50,12 +49,10 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                     });
                 }
                 long time = new Date().getTime();
-                uuids.forEach(saveConsumer(time));
-                uuids.clear();
+                ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
                 Log.info("プレイヤーデータのバックアップが完了しました。");
             }
         }.runTaskTimerAsynchronously(this, period * 60 * 20, period * 60 * 20);
-        Bukkit.getOnlinePlayers().forEach(p -> uuids.add(p.getUniqueId()));
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -77,15 +74,5 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         long time = new Date().getTime();
         ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
         Log.info("バックアップが完了しました。");
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent e) {
-        if (!uuids.contains(e.getPlayer().getUniqueId())) uuids.add(e.getPlayer().getUniqueId());
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent e) {
-        if (!uuids.contains(e.getPlayer().getUniqueId())) uuids.add(e.getPlayer().getUniqueId());
     }
 }
