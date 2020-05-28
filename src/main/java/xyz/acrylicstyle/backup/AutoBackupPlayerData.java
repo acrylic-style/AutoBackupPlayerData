@@ -35,7 +35,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
-                Log.info("プレイヤーデータをバックアップしています...");
+                Log.info("Saving player data...");
                 File folder = new File("./backupplayerdata");
                 if (folder.listFiles() != null) {
                     CollectionList<File> files = ICollectionList.asList(folder.listFiles());
@@ -52,7 +52,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                 }
                 long time = new Date().getTime();
                 ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
-                Log.info("プレイヤーデータのバックアップが完了しました。");
+                Log.info("Saved player data for " + Bukkit.getOnlinePlayers().size() + " players");
             }
         }.runTaskTimerAsynchronously(this, period * 60 * 20, period * 60 * 20);
     }
@@ -88,9 +88,9 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        Log.info("プレイヤーデータをバックアップしています...");
+        Log.info("Saving player data...");
         long time = new Date().getTime();
         ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
-        Log.info("バックアップが完了しました。");
+        Log.info("Saved player data for " + Bukkit.getOnlinePlayers().size() + " players, going to shutdown.");
     }
 }
