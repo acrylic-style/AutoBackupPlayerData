@@ -60,17 +60,20 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @EventHandler
     public void onPlayerPreDeath(PlayerPreDeathEvent e) {
-        Log.info("Saving " + e.getPlayer().getName() + "'s data before they die");
-        File folder = new File("./backupplayerdata/deaths");
-        folder.mkdirs();
-        File src = new File("./world/playerdata/" + e.getPlayer().getUniqueId().toString() + ".dat");
-        File dest = new File("./backupplayerdata/deaths/" + new Date().getTime() + "/" + e.getPlayer().getUniqueId().toString() + ".dat");
-        dest.mkdirs();
-        dest.delete();
-        try {
-            FileUtils.copyFile(src, dest);
-        } catch (IOException ignore) {}
-        Log.info("Saved data for " + e.getPlayer().getName());
+        new Thread(() -> {
+            Log.info("Saving " + e.getPlayer().getName() + "'s data before they die");
+            File folder = new File("./backupplayerdata/deaths");
+            folder.mkdirs();
+            File src = new File("./world/playerdata/" + e.getPlayer().getUniqueId().toString() + ".dat");
+            File dest = new File("./backupplayerdata/deaths/" + new Date().getTime() + "/" + e.getPlayer().getUniqueId().toString() + ".dat");
+            dest.mkdirs();
+            dest.delete();
+            try {
+                FileUtils.copyFile(src, dest);
+            } catch (IOException ignore) {
+            }
+            Log.info("Saved data for " + e.getPlayer().getName());
+        }).start();
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
