@@ -16,7 +16,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import util.Collection;
 import util.CollectionList;
@@ -107,7 +106,7 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         ItemStack arrow = new ItemStack(Material.ARROW);
         ItemMeta meta = arrow.getItemMeta();
         assert meta != null;
-        meta.setDisplayName(name);
+        meta.setDisplayName(ChatColor.GREEN + name);
         arrow.setItemMeta(meta);
         return arrow;
     }
@@ -118,24 +117,14 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
     }
 
     private int page = 1;
-    private boolean preventLoop = false;
 
     @EventHandler
     public void onInventoryOpen(InventoryOpenEvent e) {
         if (e.getInventory().getHolder() != this) return;
-        if (preventLoop) return;
-        preventLoop = true;
-        e.getPlayer().closeInventory();
         buildGui();
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                e.getPlayer().openInventory(getInventory());
-                preventLoop = false;
-            }
-        }.runTaskLater(AutoBackupPlayerData.instance, 1);
     }
 
+    // todo - page 1 -> 3 ????
     @Override
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
