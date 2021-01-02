@@ -11,7 +11,6 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -20,8 +19,9 @@ import org.jetbrains.annotations.NotNull;
 import util.Collection;
 import util.CollectionList;
 import util.ICollectionList;
-import xyz.acrylicstyle.api.MojangAPI;
+import xyz.acrylicstyle.shared.BaseMojangAPI;
 import xyz.acrylicstyle.tomeito_api.sounds.Sound;
+import xyz.acrylicstyle.tomeito_api.utils.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,13 +60,14 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         AtomicReference<Inventory> inventory = new AtomicReference<>(setItems(Bukkit.createInventory(this, 54, "プレイヤーデータ復元 - Page " + page.incrementAndGet())));
         inventory.get().setItem(45, bigBlack);
         if (folder.listFiles() != null) {
-            CollectionList<File> files = ICollectionList.asList(folder.listFiles());
+            ICollectionList<File> files = ICollectionList.asList(folder.listFiles());
             files.sort(Comparator.comparingLong(File::lastModified));
             files.sort(Comparator.reverseOrder());
             files.forEach(file -> {
                 if (index.get() > 44) {
                     inventories.add(inventory.get());
                     inventory.set(setItems(Bukkit.createInventory(this, 54, "プレイヤーデータ復元 - Page " + page.incrementAndGet())));
+                    Log.info("Created page " + page.get());
                     index.set(0);
                 }
                 File f = new File(file.getAbsolutePath() + "/");
@@ -94,7 +95,7 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         inventory.setItem(46, bigBlack);
         inventory.setItem(47, bigBlack);
         inventory.setItem(48, bigBlack);
-        inventory.setItem(49, bigBlack);
+        inventory.setItem(49, arrowItem("データを更新する"));
         inventory.setItem(50, bigBlack);
         inventory.setItem(51, bigBlack);
         inventory.setItem(52, bigBlack);
@@ -118,12 +119,6 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
 
     private int page = 1;
 
-    @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent e) {
-        if (e.getInventory().getHolder() != this) return;
-        buildGui();
-    }
-
     // todo - page 1 -> 3 ????
     @Override
     @EventHandler
@@ -136,17 +131,25 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != this) return;
         e.setCancelled(true);
         if (e.getSlot() == 45) {
-            if (page-1 < 0) {
+            if (page - 1 < 0) {
                 e.setCancelled(true);
                 return;
             }
             e.getWhoClicked().openInventory(inventories.get(--page));
+            Log.info("Opening page " + page + " for " + e.getWhoClicked().getName());
+        } else if (e.getSlot() == 49) {
+            e.getWhoClicked().closeInventory();
+            page = 1;
+            buildGui();
+            e.getWhoClicked().openInventory(getInventory());
         } else if (e.getSlot() == 53) {
             if (page+1 >= inventories.size()) {
                 e.setCancelled(true);
                 return;
             }
             e.getWhoClicked().openInventory(inventories.get(++page));
+            Log.info("Opening page " + page + " for " + e.getWhoClicked().getName());
+            
         }
         if (e.getSlot() >= 45) return;
         File f = fi.get(page).get(e.getSlot());
@@ -158,7 +161,7 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         }
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) player.loadData();
-        e.getWhoClicked().sendMessage(ChatColor.GREEN + MojangAPI.getName(uuid) + "のデータを復元しました。");
+        e.getWhoClicked().sendMessage(ChatColor.GREEN + BaseMojangAPI.getName(uuid) + "のデータを復元しました。");
         e.getWhoClicked().sendMessage(ChatColor.GREEN + "復元したバックアップ: " + AutoBackupPlayerData.timestampToDate(f.lastModified()));
         ((Player) e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_NOTE_PLING, 100F, 2F);
     }

@@ -8,7 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import util.CollectionList;
+import org.jetbrains.annotations.NotNull;
 import util.ICollectionList;
 import xyz.acrylicstyle.shared.BaseMojangAPI;
 import xyz.acrylicstyle.tomeito_api.TomeitoAPI;
@@ -58,7 +58,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         TomeitoAPI.registerCommand("playerdata", new PlayerCommandExecutor() {
             @Override
-            public void onCommand(Player player, String[] args) {
+            public void onCommand(@NotNull Player player, String[] args) {
                 UUID uuid;
                 try {
                     uuid = BaseMojangAPI.getUniqueId(args[0]);
@@ -76,7 +76,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                 Log.info("Saving player data...");
                 File folder = new File("./backupplayerdata");
                 if (folder.listFiles() != null) {
-                    CollectionList<File> files = ICollectionList.asList(folder.listFiles());
+                    ICollectionList<File> files = ICollectionList.asList(folder.listFiles());
                     files.sort(Comparator.comparingLong(File::lastModified));
                     files.sort(Comparator.reverseOrder());
                     files.foreach((file, i) -> {
@@ -92,7 +92,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                 ICollectionList.asList(new ArrayList<>(Bukkit.getOnlinePlayers())).map(Player::getUniqueId).forEach(saveConsumer(time));
                 Log.info("Saved player data for " + Bukkit.getOnlinePlayers().size() + " players");
             }
-        }.runTaskTimerAsynchronously(this, period * 60 * 20, period * 60 * 20);
+        }.runTaskTimerAsynchronously(this, (long) period * 60 * 20, (long) period * 60 * 20);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
