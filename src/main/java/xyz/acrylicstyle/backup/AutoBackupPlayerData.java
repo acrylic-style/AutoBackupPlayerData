@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 public class AutoBackupPlayerData extends JavaPlugin implements Listener {
+    public static String world = "world";
     public static int interval = 10; // minutes
     public static int keepFiles = 100;
 
@@ -39,6 +40,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        world = getConfig().getString("world", "world");
         interval = getConfig().getInt("interval", 10);
         keepFiles = getConfig().getInt("keepFiles", 10000);
         Bukkit.getPluginManager().registerEvents(this, this);
@@ -63,8 +65,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
                         }
                     }
                 }
-                long time = new Date().getTime();
-                Bukkit.getOnlinePlayers().stream().map(Player::getUniqueId).forEach(saveConsumer(time));
+                saveNow();
                 getLogger().info("Saved player data for " + Bukkit.getOnlinePlayers().size() + " players");
             }
         }.runTaskTimerAsynchronously(this, (long) interval * 60 * 20, (long) interval * 60 * 20);
@@ -77,8 +78,8 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
             getSLF4JLogger().info("Saving {} data before they die", e.getPlayer().getName());
             File folder = new File("./backupplayerdata/deaths");
             folder.mkdirs();
-            File src = new File("./world/playerdata/" + e.getPlayer().getUniqueId().toString() + ".dat");
-            File dest = new File("./backupplayerdata/deaths/" + new Date().getTime() + "/" + e.getPlayer().getUniqueId().toString() + ".dat");
+            File src = new File("./" + world + "/playerdata/" + e.getPlayer().getUniqueId() + ".dat");
+            File dest = new File("./backupplayerdata/deaths/" + new Date().getTime() + "/" + e.getPlayer().getUniqueId() + ".dat");
             dest.mkdirs();
             dest.delete();
             try {
@@ -92,7 +93,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
     private Consumer<UUID> saveConsumer(long time) {
         return uuid -> {
             if (Bukkit.getPlayer(uuid) != null) Objects.requireNonNull(Bukkit.getPlayer(uuid)).saveData();
-            File src = new File("./world/playerdata/" + uuid + ".dat");
+            File src = new File("./" + world + "/playerdata/" + uuid + ".dat");
             File dest = new File("./backupplayerdata/" + time + "/" + uuid + ".dat");
             dest.mkdirs();
             dest.delete();
@@ -102,11 +103,15 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         };
     }
 
+    public void saveNow() {
+        long time = new Date().getTime();
+        Bukkit.getOnlinePlayers().stream().map(Player::getUniqueId).forEach(saveConsumer(time));
+    }
+
     @Override
     public void onDisable() {
         getLogger().info("Saving player data...");
-        long time = new Date().getTime();
-        Bukkit.getOnlinePlayers().stream().map(Player::getUniqueId).forEach(saveConsumer(time));
+        saveNow();
         getLogger().info("Saved player data for " + Bukkit.getOnlinePlayers().size() + " players, going to shutdown.");
     }
 }
