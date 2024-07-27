@@ -2,8 +2,6 @@ name: AutoBackupPlayerData
 main: xyz.acrylicstyle.backup.AutoBackupPlayerData
 version: "1.0"
 api-version: "1.13"
-depend:
-  - TomeitoLib
 commands:
   playerdata:
     permission: autobackupplayerdata.playerdata

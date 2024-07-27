@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,26 +17,18 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
-import util.Collection;
-import util.CollectionList;
-import util.ICollectionList;
-import xyz.acrylicstyle.shared.BaseMojangAPI;
-import xyz.acrylicstyle.tomeito_api.sounds.Sound;
-import xyz.acrylicstyle.tomeito_api.utils.Log;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.PlayerGui, InventoryHolder, Listener {
+public class PlayerDataRestoreGui implements InventoryHolder {
     private final UUID uuid;
     private static final ItemStack bigBlack;
-    private final CollectionList<Inventory> inventories = new CollectionList<>();
-    private final Collection<Integer, Collection<Integer, File>> fi = new Collection<>();
+    private final List<Inventory> inventories = new ArrayList<>();
+    private final Map<Integer, Map<Integer, File>> fi = new HashMap<>();
 
     static {
         bigBlack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
@@ -46,7 +39,6 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
     }
 
     public PlayerDataRestoreGui(UUID uuid) {
-        Bukkit.getPluginManager().registerEvents(this, AutoBackupPlayerData.instance);
         this.uuid = uuid;
         buildGui();
     }
@@ -60,20 +52,19 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
         AtomicReference<Inventory> inventory = new AtomicReference<>(setItems(Bukkit.createInventory(this, 54, "プレイヤーデータ復元 - Page " + page.incrementAndGet())));
         inventory.get().setItem(45, bigBlack);
         if (folder.listFiles() != null) {
-            ICollectionList<File> files = ICollectionList.asList(folder.listFiles());
+            List<File> files = Arrays.asList(Objects.requireNonNull(folder.listFiles()));
             files.sort(Comparator.comparingLong(File::lastModified));
             files.sort(Comparator.reverseOrder());
             files.forEach(file -> {
                 if (index.get() > 44) {
                     inventories.add(inventory.get());
                     inventory.set(setItems(Bukkit.createInventory(this, 54, "プレイヤーデータ復元 - Page " + page.incrementAndGet())));
-                    Log.info("Created page " + page.get());
                     index.set(0);
                 }
                 File f = new File(file.getAbsolutePath() + "/");
                 if (new File(f.getAbsolutePath() + "/" + uuid.toString() + ".dat").exists()) {
-                    if (!fi.containsKey(page.get())) fi.add(page.get(), new Collection<>());
-                    fi.get(page.get()).add(index.get(), f);
+                    if (!fi.containsKey(page.get())) fi.put(page.get(), new HashMap<>());
+                    fi.get(page.get()).put(index.get(), f);
                     inventory.get().setItem(index.getAndIncrement(), getItemStack(file));
                 }
             });
@@ -114,68 +105,67 @@ public class PlayerDataRestoreGui implements xyz.acrylicstyle.tomeito_api.gui.Pl
 
     @Override
     public @NotNull Inventory getInventory() {
-        return Objects.requireNonNull(inventories.first());
+        return inventories.get(0);
     }
 
-    private int page = 1;
+    private int page = 0;
 
-    // todo - page 1 -> 3 ????
-    @Override
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent e) {
-        if (e.getInventory().getHolder() != this) return;
-        if (e.getClick() == ClickType.SHIFT_LEFT || e.getClick() == ClickType.SHIFT_RIGHT) {
+    public static class EventListener implements Listener {
+        @EventHandler
+        public void onInventoryClick(InventoryClickEvent e) {
+            if (!(e.getInventory().getHolder() instanceof PlayerDataRestoreGui)) return;
             e.setCancelled(true);
-            return;
-        }
-        if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != this) return;
-        e.setCancelled(true);
-        if (e.getSlot() == 45) {
-            if (page - 1 < 0) {
-                e.setCancelled(true);
+            if (e.getClick() == ClickType.SHIFT_LEFT || e.getClick() == ClickType.SHIFT_RIGHT) {
                 return;
             }
-            e.getWhoClicked().openInventory(inventories.get(--page));
-            Log.info("Opening page " + page + " for " + e.getWhoClicked().getName());
-        } else if (e.getSlot() == 49) {
-            e.getWhoClicked().closeInventory();
-            page = 1;
-            buildGui();
-            e.getWhoClicked().openInventory(getInventory());
-        } else if (e.getSlot() == 53) {
-            if (page+1 >= inventories.size()) {
-                e.setCancelled(true);
+            if (e.getClickedInventory() == null || !(e.getClickedInventory().getHolder() instanceof PlayerDataRestoreGui)) {
                 return;
             }
-            e.getWhoClicked().openInventory(inventories.get(++page));
-            Log.info("Opening page " + page + " for " + e.getWhoClicked().getName());
-            
+            PlayerDataRestoreGui gui = (PlayerDataRestoreGui) e.getInventory().getHolder();
+            if (e.getSlot() == 45) {
+                if (gui.page - 1 < 0) {
+                    e.setCancelled(true);
+                    return;
+                }
+                e.getWhoClicked().openInventory(gui.inventories.get(--gui.page));
+            } else if (e.getSlot() == 49) {
+                e.getWhoClicked().closeInventory();
+                gui.page = 1;
+                gui.buildGui();
+                e.getWhoClicked().openInventory(gui.getInventory());
+            } else if (e.getSlot() == 53) {
+                if (gui.page + 1 >= gui.inventories.size()) {
+                    e.setCancelled(true);
+                    return;
+                }
+                e.getWhoClicked().openInventory(gui.inventories.get(++gui.page));
+            }
+            if (e.getSlot() >= 45) return;
+            File f = gui.fi.get(gui.page).get(e.getSlot());
+            File dest = new File("./world/playerdata/" + gui.uuid.toString() + ".dat");
+            try {
+                FileUtils.copyFile(new File(f.getAbsolutePath() + "/" + gui.uuid + ".dat"), dest);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+            Player player = Bukkit.getPlayer(gui.uuid);
+            if (player != null) player.loadData();
+            e.getWhoClicked().sendMessage(ChatColor.GREEN + Bukkit.getOfflinePlayer(gui.uuid).getName() + "のデータを復元しました。");
+            e.getWhoClicked().sendMessage(ChatColor.GREEN + "復元したバックアップ: " + AutoBackupPlayerData.timestampToDate(f.lastModified()));
+            ((Player) e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 100F, 2F);
         }
-        if (e.getSlot() >= 45) return;
-        File f = fi.get(page).get(e.getSlot());
-        File dest = new File("./world/playerdata/" + uuid.toString() + ".dat");
-        try {
-            FileUtils.copyFile(new File(f.getAbsolutePath() + "/" + uuid.toString() + ".dat"), dest);
-        } catch (IOException ioException) {
-            ioException.printStackTrace();
+
+        @EventHandler
+        public void onInventoryDrag(InventoryDragEvent e) {
+            if (e.getInventory().getHolder() != this) return;
+            e.setCancelled(true);
         }
-        Player player = Bukkit.getPlayer(uuid);
-        if (player != null) player.loadData();
-        e.getWhoClicked().sendMessage(ChatColor.GREEN + BaseMojangAPI.getName(uuid) + "のデータを復元しました。");
-        e.getWhoClicked().sendMessage(ChatColor.GREEN + "復元したバックアップ: " + AutoBackupPlayerData.timestampToDate(f.lastModified()));
-        ((Player) e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_NOTE_PLING, 100F, 2F);
-    }
 
-    @Override
-    @EventHandler
-    public void onInventoryDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() != this) return;
-        e.setCancelled(true);
-    }
-
-    @Override
-    @EventHandler
-    public void onInventoryClose(InventoryCloseEvent e) {
-        page = 1;
+        @EventHandler
+        public void onInventoryClose(InventoryCloseEvent e) {
+            if (!(e.getInventory().getHolder() instanceof PlayerDataRestoreGui)) return;
+            PlayerDataRestoreGui gui = (PlayerDataRestoreGui) e.getInventory().getHolder();
+            gui.page = 0;
+        }
     }
 }
