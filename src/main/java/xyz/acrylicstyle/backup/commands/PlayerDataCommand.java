@@ -1,5 +1,6 @@
 package xyz.acrylicstyle.backup.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -14,7 +15,7 @@ public class PlayerDataCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
         Player player = (Player) sender;
-        player.openInventory(new PlayerDataRestoreGui(player.getUniqueId()).getInventory());
+        player.openInventory(new PlayerDataRestoreGui(Bukkit.getOfflinePlayer(args[0]).getUniqueId()).getInventory());
         return false;
     }
 

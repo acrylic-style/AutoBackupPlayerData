@@ -10,6 +10,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import xyz.acrylicstyle.backup.commands.PlayerDataCommand;
 import xyz.acrylicstyle.backup.event.PlayerPreDeathEvent;
+import xyz.acrylicstyle.backup.listener.DamageListener;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +45,7 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         interval = getConfig().getInt("interval", 10);
         keepFiles = getConfig().getInt("keepFiles", 10000);
         Bukkit.getPluginManager().registerEvents(this, this);
+        Bukkit.getPluginManager().registerEvents(new DamageListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerDataRestoreGui.EventListener(), AutoBackupPlayerData.getInstance());
         Objects.requireNonNull(getCommand("playerdata")).setExecutor(new PlayerDataCommand());
         new BukkitRunnable() {
@@ -71,20 +73,11 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
         }.runTaskTimerAsynchronously(this, (long) interval * 60 * 20, (long) interval * 60 * 20);
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @EventHandler
     public void onPlayerPreDeath(PlayerPreDeathEvent e) {
         new Thread(() -> {
             getSLF4JLogger().info("Saving {} data before they die", e.getPlayer().getName());
-            File folder = new File("./backupplayerdata/deaths");
-            folder.mkdirs();
-            File src = new File("./" + world + "/playerdata/" + e.getPlayer().getUniqueId() + ".dat");
-            File dest = new File("./backupplayerdata/deaths/" + new Date().getTime() + "/" + e.getPlayer().getUniqueId() + ".dat");
-            dest.mkdirs();
-            dest.delete();
-            try {
-                FileUtils.copyFile(src, dest);
-            } catch (IOException ignore) {}
+            saveConsumer(System.currentTimeMillis()).accept(e.getPlayer().getUniqueId());
             getLogger().info("Saved data for " + e.getPlayer().getName());
         }).start();
     }
@@ -95,16 +88,17 @@ public class AutoBackupPlayerData extends JavaPlugin implements Listener {
             if (Bukkit.getPlayer(uuid) != null) Objects.requireNonNull(Bukkit.getPlayer(uuid)).saveData();
             File src = new File("./" + world + "/playerdata/" + uuid + ".dat");
             File dest = new File("./backupplayerdata/" + time + "/" + uuid + ".dat");
-            dest.mkdirs();
-            dest.delete();
+            dest.getParentFile().mkdirs();
             try {
                 FileUtils.copyFile(src, dest);
-            } catch (IOException ignore) {}
+            } catch (IOException ex) {
+                getSLF4JLogger().warn("Failed to save data for {}", uuid, ex);
+            }
         };
     }
 
     public void saveNow() {
-        long time = new Date().getTime();
+        long time = System.currentTimeMillis();
         Bukkit.getOnlinePlayers().stream().map(Player::getUniqueId).forEach(saveConsumer(time));
     }
 

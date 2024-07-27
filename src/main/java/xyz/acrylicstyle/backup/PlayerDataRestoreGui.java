@@ -46,7 +46,7 @@ public class PlayerDataRestoreGui implements InventoryHolder {
     private void buildGui() {
         inventories.clear();
         fi.clear();
-        AtomicInteger page = new AtomicInteger();
+        AtomicInteger page = new AtomicInteger(-1);
         AtomicInteger index = new AtomicInteger();
         File folder = new File("./backupplayerdata");
         AtomicReference<Inventory> inventory = new AtomicReference<>(setItems(Bukkit.createInventory(this, 54, "プレイヤーデータ復元 - Page " + page.incrementAndGet())));
